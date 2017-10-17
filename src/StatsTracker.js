@@ -16,31 +16,31 @@ class StatsTracker {
     }
 
     async start() {
-        this._db = new PGClient({
-            user: config.get("homeserver.db.username"),
-            host: config.get("homeserver.db.hostname"),
-            database: config.get("homeserver.db.database"),
-            password: config.get("homeserver.db.password"),
-        });
-        LogService.verbose("StatsTracker", "Connecting to database...");
         setInterval(this._update.bind(this), 60 * 60 * 1000); // once an hour, update
         await this._update();
     }
 
     async _update() {
+        var db = new PGClient({
+            user: config.get("homeserver.db.username"),
+            host: config.get("homeserver.db.hostname"),
+            database: config.get("homeserver.db.database"),
+            password: config.get("homeserver.db.password"),
+        });
+
         LogService.info("StatsTracker", "Updating statistics information for all series (connecting to DB)");
-        await this._db.connect();
+        await db.connect();
 
         LogService.info("StatsTracker", "Updating user statistics");
-        this._users = await this._getUserStats();
+        this._users = await this._getUserStats(db);
 
         LogService.info("StatsTracker", "Disconnecting from database");
-        await this._db.end();
+        await db.end();
 
         LogService.info("StatsTracker", "Statistics updated");
     }
 
-    async _getUserStats() {
+    async _getUserStats(db) {
         var userData = {
             labels: [],
             data: {},
@@ -60,7 +60,7 @@ class StatsTracker {
             }
             knownMasks.push(seriesInfo.pattern);
             LogService.verbose("StatsTracker", "Running query: [" + seriesInfo.pattern + "] " + query);
-            const result = await this._db.query(query, [seriesInfo.pattern]);
+            const result = await db.query(query, [seriesInfo.pattern]);
             LogService.verbose("StatsTracker", result.rows);
 
             userData.data[seriesInfo.label] = {};
@@ -80,7 +80,7 @@ class StatsTracker {
         query = query.substring(0, query.length - "and name ".length);
         query += "group by creation_days";
         LogService.verbose("StatsTracker", "Running query: [" + knownMasks + "] " + query);
-        const result = await this._db.query(query, knownMasks);
+        const result = await db.query(query, knownMasks);
         LogService.verbose("StatsTracker", result.rows);
         for (var row of result.rows) {
             row.creation_days = Number(row.creation_days);
