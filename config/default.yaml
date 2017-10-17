@@ -10,19 +10,26 @@ web:
   address: '0.0.0.0'
   port: 8184
 
-# Any user not covered by the following will be grouped under "other"
-userTypes:
-  - label: Twitter
-    query: '@_twitter%'
-  - label: Discord
-    query: '@_discord%'
-
-# Any room not covered by the following will be grouped under "other"
-roomTypes:
-  - label: Twitter
-    query: '#_twitter%'
-  - label: Discord
-    query: '#_discord%'
+# Series configuration data for the graphs
+series:
+  users:
+    # Categorize your users with patters. % matches any character
+    - label: Twitter
+      pattern: '@_twitter%'
+      color: '#008FFF'
+    # Series without a pattern will match anyone not included in another pattern.
+    # In this example, anyone who is not a Twitter user will be 'Other'
+    - label: Other
+      color: '#FFAA00'
+  rooms:
+    # Categorize your rooms with patters. % matches any character
+    - label: Twitter
+      pattern: '#_twitter%'
+      color: '#008FFF'
+    # Series without a pattern will match any room not included in another pattern.
+    # In this example, any room that is not a Twitter room will be 'Other'
+    - label: Other
+      color: '#FFAA00'
 
 # Settings for controlling how logging works
 logging:

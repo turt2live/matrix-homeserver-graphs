@@ -5,10 +5,14 @@ const PGClient = require("pg").Client;
 class StatsTracker {
 
     constructor() {
-        this.usersInfo = {
-            labels: [],
+        this._users = {
+            labels: {},
             data: {}
         };
+    }
+
+    get userData() {
+        return this._users;
     }
 
     async start() {
@@ -19,35 +23,52 @@ class StatsTracker {
             password: config.get("homeserver.db.password"),
         });
         LogService.verbose("StatsTracker", "Connecting to database...");
+        setInterval(this._update.bind(this), 60 * 60 * 1000); // once an hour, update
+        await this._update();
+    }
+
+    async _update() {
+        LogService.info("StatsTracker", "Updating statistics information for all series (connecting to DB)");
         await this._db.connect();
-        LogService.verbose("StatsTracker", "Getting user stats");
-        await this._getUserStats();
+
+        LogService.info("StatsTracker", "Updating user statistics");
+        this._users = await this._getUserStats();
+
+        LogService.info("StatsTracker", "Disconnecting from database");
+        await this._db.end();
+
+        LogService.info("StatsTracker", "Statistics updated");
     }
 
     async _getUserStats() {
-        var userInfo = {
+        var userData = {
             labels: [],
             data: {},
         };
         var knownMasks = [];
         var minDate = null;
         var maxDate = null;
+        var noPatternSeries = [];
 
         // Get labeled users
         let query = "SELECT count(*) as num, floor(creation_ts/86400.0) as creation_days from users where name like $1 group by creation_days";
-        for (var dataset of config.get("userTypes")) {
-            userInfo.labels.push(dataset.label);
-            knownMasks.push(dataset.query);
-            LogService.verbose("StatsTracker", "Running query: [" + dataset.query + "] " + query);
-            const result = await this._db.query(query, [dataset.query]);
+        for (var seriesInfo of config.get("series.users")) {
+            userData.labels[seriesInfo.label] = seriesInfo.color;
+            if (!seriesInfo.pattern) {
+                noPatternSeries.push(seriesInfo.label);
+                continue;
+            }
+            knownMasks.push(seriesInfo.pattern);
+            LogService.verbose("StatsTracker", "Running query: [" + seriesInfo.pattern + "] " + query);
+            const result = await this._db.query(query, [seriesInfo.pattern]);
             LogService.verbose("StatsTracker", result.rows);
 
-            userInfo.data[dataset.label] = {};
+            userData.data[seriesInfo.label] = {};
             for (var row of result.rows) {
                 row.creation_days = Number(row.creation_days);
                 row.num = Number(row.num);
 
-                userInfo.data[dataset.label][row.creation_days] = row.num;
+                userData.data[seriesInfo.label][row.creation_days] = row.num;
                 if (minDate === null || row.creation_days < minDate) minDate = row.creation_days;
                 if (maxDate === null || row.creation_days > maxDate) maxDate = row.creation_days;
             }
@@ -61,31 +82,32 @@ class StatsTracker {
         LogService.verbose("StatsTracker", "Running query: [" + knownMasks + "] " + query);
         const result = await this._db.query(query, knownMasks);
         LogService.verbose("StatsTracker", result.rows);
-        userInfo.labels.push("Other");
-        userInfo.data["Other"] = {};
         for (var row of result.rows) {
             row.creation_days = Number(row.creation_days);
             row.num = Number(row.num);
 
-            userInfo.data["Other"][row.creation_days] = row.num;
+            for (var seriesLabel of noPatternSeries) {
+                if (!userData.data[seriesLabel]) userData.data[seriesLabel] = {};
+                userData.data[seriesLabel][row.creation_days] = row.num;
+            }
+
             if (minDate === null || row.creation_days < minDate) minDate = row.creation_days;
             if (maxDate === null || row.creation_days > maxDate) maxDate = row.creation_days;
         }
 
         // Populate missing data
         LogService.verbose("StatsTracker", "Populating users for missing days");
-        for (var label of userInfo.labels) {
+        for (var label in userData.labels) {
             for (var i = minDate; i <= maxDate; i++) {
-                if (!userInfo.data[label][i]) {
-                    userInfo.data[label][i] = 0;
+                if (!userData.data[label][i]) {
+                    userData.data[label][i] = 0;
                 }
             }
         }
 
-        LogService.info("StatsTracker", "Publishing new user stats");
-        userInfo.startDay = minDate;
-        userInfo.endDay = maxDate;
-        this.usersInfo = userInfo;
+        userData.startDay = minDate;
+        userData.endDay = maxDate;
+        return userData;
     }
 }
 

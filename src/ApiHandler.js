@@ -35,7 +35,7 @@ class ApiHandler {
     }
 
     _getUserStats(req, res) {
-        res.status(200).send(StatsTracker.usersInfo);
+        res.status(200).send(StatsTracker.userData);
     }
 }
 
