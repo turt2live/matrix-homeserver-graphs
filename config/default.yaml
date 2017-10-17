@@ -1,0 +1,21 @@
+homeserver:
+  type: 'synapse' # only 'synapse' is supported for now, requires postgres
+  db:
+    hostname: localhost
+    username: matrix
+    password: your_password_here
+    database: synapse
+
+web:
+  address: '0.0.0.0'
+  port: 8184
+
+# Settings for controlling how logging works
+logging:
+  file: logs/graphs.log
+  console: true
+  consoleLevel: info
+  fileLevel: verbose
+  rotate:
+    size: 52428800 # bytes, default is 50mb
+    count: 5

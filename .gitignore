@@ -1,3 +1,18 @@
+/.idea
+web-dist/
+
+logs/
+
+db/*.db
+db/*.db-journal
+start.sh
+
+config/production.yaml
+config/development.yaml
+
+config/database-orig.json
+config/database-target.json
+
 # Logs
 logs
 *.log
