@@ -2,6 +2,7 @@ var express = require("express");
 var LogService = require("./LogService");
 var config = require("config");
 var bodyParser = require('body-parser');
+var StatsTracker = require("./StatsTracker");
 
 /**
  * Processes and controls API requests
@@ -34,7 +35,7 @@ class ApiHandler {
     }
 
     _getUserStats(req, res) {
-        res.status(200).send({error: false, data:[{test:1}]});
+        res.status(200).send(StatsTracker.usersInfo);
     }
 }
 
