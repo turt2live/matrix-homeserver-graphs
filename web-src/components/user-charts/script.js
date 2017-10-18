@@ -1,9 +1,9 @@
-import userCharts from "../user-charts/user-charts.vue";
+import lineChart from "../line-chart/line-chart.vue";
 
 export default {
-    name: 'landing',
+    name: 'user-charts',
     components: {
-        'user-charts': userCharts
+        'line-chart': lineChart
     },
     data () {
         return {

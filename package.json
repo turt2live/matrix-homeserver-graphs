@@ -71,12 +71,14 @@
     "bluebird": "^3.5.1",
     "body-parser": "^1.18.2",
     "chalk": "^2.1.0",
+    "chart.js": "^2.7.0",
     "config": "^1.26.2",
     "express": "^4.16.2",
     "js-yaml": "^3.10.0",
     "lodash": "^4.17.4",
     "moment": "^2.19.1",
     "pg": "^7.3.0",
+    "vue-chartjs": "^3.0.0",
     "winston": "^2.4.0"
   },
   "engines": {
